@@ -33,7 +33,7 @@ def connection_config():
 
     # Streamlit Cloud reads connection settings from secrets.
     # Railway and local Docker continue using environment variables.
-      streamlit_host = None
+    streamlit_host = None
 
     if not os.getenv("DB_HOST"):
         try:
