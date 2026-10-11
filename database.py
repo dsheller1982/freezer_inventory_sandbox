@@ -2,7 +2,7 @@ import os
 import time
 from contextlib import contextmanager
 from decimal import Decimal
-
+import streamlit as st
 import pymysql
 from pymysql.cursors import DictCursor
 
@@ -15,8 +15,9 @@ def _env(primary: str, railway: str, default=None):
     return os.getenv(primary) or os.getenv(railway) or default
 
 
+
 def connection_config():
-    return {
+    config = {
         "host": _env("DB_HOST", "MYSQLHOST", "127.0.0.1"),
         "port": int(_env("DB_PORT", "MYSQLPORT", "3306")),
         "user": _env("DB_USER", "MYSQLUSER", "freezer_demo"),
@@ -29,6 +30,31 @@ def connection_config():
         "read_timeout": 15,
         "write_timeout": 15,
     }
+
+    # Streamlit Cloud reads connection settings from secrets.
+    # Railway and local Docker continue using environment variables.
+    try:
+    streamlit_host = st.secrets.get("DB_HOST")
+    except FileNotFoundError:
+    streamlit_host = None
+
+    if streamlit_host:
+        config.update({
+            "host": st.secrets["DB_HOST"],
+            "port": int(st.secrets["DB_PORT"]),
+            "user": st.secrets["DB_USER"],
+            "password": st.secrets["DB_PASSWORD"],
+            "database": st.secrets["DB_NAME"],
+        })
+
+        import ssl
+
+          ssl_context = ssl.create_default_context()
+        ssl_context.load_verify_locations(
+            cadata=st.secrets["DB_SSL_CA"]
+        )
+        config["ssl"] = ssl_context
+    return config
 
 
 def get_connection(retries: int = 3):
