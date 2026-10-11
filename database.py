@@ -33,10 +33,13 @@ def connection_config():
 
     # Streamlit Cloud reads connection settings from secrets.
     # Railway and local Docker continue using environment variables.
-    try:
-        streamlit_host = st.secrets.get("DB_HOST")
-    except FileNotFoundError:
-        streamlit_host = None
+      streamlit_host = None
+
+    if not os.getenv("DB_HOST"):
+        try:
+            streamlit_host = st.secrets.get("DB_HOST")
+        except (FileNotFoundError, KeyError):
+            pass
 
     if streamlit_host:
         config.update({
@@ -54,6 +57,14 @@ def connection_config():
             cadata=st.secrets["DB_SSL_CA"]
         )
         config["ssl"] = ssl_context
+    elif os.getenv("DB_SSL_CA"):
+        import ssl
+
+        ssl_context = ssl.create_default_context()
+        ssl_context.load_verify_locations(
+            cadata=os.environ["DB_SSL_CA"]
+        )
+        config["ssl"] = ssl_context    
     return config
 
 
